@@ -242,18 +242,55 @@ DuckDB can natively query Parquet files. This works through standard SQL:
 
 ### Converting Parquet to JSON
 
-Use DuckDB's `COPY ... TO` with `FORMAT JSON`:
+Two approaches, depending on whether you want a JSON file on disk or JSON data in Scheme.
+
+**Approach 1: DuckDB writes the JSON file directly**
+
+This is the fastest option for large files since DuckDB handles everything in C:
 
 ```scheme
+(import :clan/db/duckdb)
+
 (call-with-database #f
   (lambda (conn)
-    ;; Parquet -> JSON file (DuckDB handles the conversion)
     (duckdb-exec conn
       "COPY (SELECT * FROM read_parquet('input.parquet'))
        TO 'output.json' (FORMAT JSON, ARRAY true)")))
 ```
 
-Or produce JSON strings in Scheme (row by row):
+`ARRAY true` produces a top-level JSON array `[{...}, {...}, ...]`. Without it, DuckDB writes newline-delimited JSON (one object per line).
+
+You can filter or transform during the conversion:
+
+```scheme
+(call-with-database #f
+  (lambda (conn)
+    (duckdb-exec conn
+      "COPY (
+         SELECT id, name, amount
+         FROM read_parquet('sales/*.parquet')
+         WHERE amount > 100
+         ORDER BY amount DESC
+       ) TO 'large_sales.json' (FORMAT JSON, ARRAY true)")))
+```
+
+**Approach 2: Query into Scheme, serialize with `:std/text/json`**
+
+This gives full control in Scheme -- you can filter, transform, or reshape data between the query and the JSON serialization:
+
+```scheme
+(import :clan/db/duckdb :std/text/json)
+
+(call-with-database #f
+  (lambda (conn)
+    (def rows (duckdb-query conn "SELECT * FROM read_parquet('input.parquet')"))
+    ;; rows is a list of hash-tables - write-json handles them directly
+    (call-with-output-file "output.json"
+      (lambda (port)
+        (write-json rows port)))))
+```
+
+Or print each row as a separate JSON line to stdout:
 
 ```scheme
 (import :clan/db/duckdb :std/text/json)
@@ -261,7 +298,6 @@ Or produce JSON strings in Scheme (row by row):
 (call-with-database #f
   (lambda (conn)
     (def rows (duckdb-query conn "SELECT * FROM read_parquet('data.parquet')"))
-    ;; Each row is already a hash-table - write as JSON
     (for-each
       (lambda (row)
         (displayln (call-with-output-string (lambda (p) (write-json row p)))))
