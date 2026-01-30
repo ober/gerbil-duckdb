@@ -1,0 +1,62 @@
+;;; -*- Gerbil -*-
+;;; DuckDB FFI interface
+package: clan/db
+
+(export #t)
+(extern
+  ;; Database lifecycle
+  duckdb_open_
+  duckdb_close_
+
+  ;; Connection lifecycle
+  duckdb_connect_
+  duckdb_disconnect_
+
+  ;; Query execution
+  duckdb_query_
+
+  ;; Result metadata
+  duckdb_result_error_
+  duckdb_column_count_
+  duckdb_row_count_
+  duckdb_rows_changed_
+  duckdb_column_name_
+  duckdb_column_type_
+
+  ;; Value extraction
+  duckdb_value_is_null_
+  duckdb_value_boolean_
+  duckdb_value_int8_
+  duckdb_value_int16_
+  duckdb_value_int32_
+  duckdb_value_int64_
+  duckdb_value_uint8_
+  duckdb_value_uint16_
+  duckdb_value_uint32_
+  duckdb_value_uint64_
+  duckdb_value_float_
+  duckdb_value_double_
+  duckdb_value_varchar_
+
+  ;; Prepared statements
+  duckdb_prepare_
+  duckdb_destroy_prepare_
+  duckdb_prepare_error_
+  duckdb_nparams_
+  duckdb_execute_prepared_
+
+  ;; Parameter binding
+  duckdb_bind_boolean_
+  duckdb_bind_int32_
+  duckdb_bind_int64_
+  duckdb_bind_double_
+  duckdb_bind_varchar_
+  duckdb_bind_null_
+  duckdb_bind_blob_
+  duckdb_clear_bindings_
+
+  ;; Result cleanup
+  duckdb_destroy_result_
+  )
+
+(load-module "clan/db/_duckdb")
